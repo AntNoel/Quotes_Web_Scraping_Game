@@ -1,6 +1,6 @@
 from socket import gethostbyaddr
 from bs4 import BeautifulSoup
-import requests, re
+import requests, re, random
 
 
 
@@ -67,6 +67,18 @@ def scrape_all_pages():
 
     return quotes
 
+
+def get_author_birth_info(quote_dict):
+    #Send request to author's bio page
+    #Scrap the bio page
+
+    base_url = "http://quotes.toscrape.com/"
+    scraped_page = scrapePage(getHTML(base_url + quote_dict["author_bio_sub_dir"]))
+    #Extract the birthinfo
+    author_birth_info = scraped_page.find("span", {"class":"author-born-date"}).text +" "+  scraped_page.find("span", {"class":"author-born-location"}).text
+    return author_birth_info
+
+
 def game_loop():
     guesses = 4
     game = True
@@ -75,29 +87,30 @@ def game_loop():
     def handle_game_over():
     #Get if the user wants to play again, if
     #Reset the game if needed or break the loop
-        if input("Do you want to play again? (y/):") == "y":
+        if input("Do you want to play again? (y/n):") == "y":
             #Resets and return True
-            global guesses
+            nonlocal guesses
             guesses = 4
-            quotes.shuffle()
+            random.shuffle(quotes)
             return True
-          
+
         return False
 
     #Grab all of the quotes from the website and shuffle them in the list
     quotes = scrape_all_pages()
-    quotes.shuffle()
+    random.shuffle(quotes)
 
-
+    print(quotes)
     #Begin the game loop
     while(game):
 
         #Display the 1st quote and get the user input
-        print("Here's a quote:")
+        print()
+        print("Quote:")
         print()
         print(quotes[0]["text"])
         user_guess = input(f"Who said this? Guesses remaining: {guesses}: ")
-        
+        print()
         #If the user is correct tell them congrats and ask if they want to play again. If they do, reshuffle the quotes and update the guesses
         if user_guess.lower() == quotes[0]["author"].lower():
             print("You guessed correctly correctly! Congratulations!")
@@ -110,10 +123,17 @@ def game_loop():
             match guesses:
                 case 0:
                     print("You're out of guesses! GAME OVER!")
-                    handle_game_over()
+                    game = handle_game_over()
                 case 1:
-                    name_letters= quotes[0]["author"]
+                    name_letters= re.sub("\W", "", quotes[0]["author"])
                     print(f"The author has {len(name_letters)} letters in their name" )
+                case 2:
+                    first_name, *other_names = quotes[0]["author"].split(" ")
+                    print(f"The author's name begins with {first_name[0]} and their last name begins with {other_names[0][0]}" )
+                case 3:
+                    print(f"Here's some info about the author's birth: {get_author_birth_info(quotes[0])}") 
+                case _:
+                    raise ValueError
      
         #If they're out of guesses, game over and ask if they want to play against and reset the game
         # 3 guesses left - show a hint with the authors bdate and location
@@ -122,7 +142,7 @@ def game_loop():
 
 
         
-
+game_loop()
 
 
 
